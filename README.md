@@ -10,7 +10,7 @@
   Permet à un utilisateur de se connecter
 
   POST → http://localhost:8800/api/auth/logout
-  Permet à un utilisateur de se connecter
+  Permet à un utilisateur de se déconnecter
 
   GET → http://localhost:8800/api/auth/profil
   Profil utilisateur (besoin d'un token)
