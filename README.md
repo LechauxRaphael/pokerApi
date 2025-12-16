@@ -18,10 +18,10 @@
 
 👥 Joueurs
 
-  GET → http://localhost:8800/api/players
+  GET → http://localhost:8800/api/users
   Récupère tous les utilisateurs
   
-  GET → http://localhost:8800/api/players/:id
+  GET → http://localhost:8800/api/users/:id
   Récupère un utilisateur spécifique
 
 🪑 Tables
