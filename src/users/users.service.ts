@@ -44,7 +44,7 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async create(user: { username: string; password: string }) {
+  async create(user: { username: string; password: string; money: number }) {
     const newUser = this.usersRepository.create(user);
     return this.usersRepository.save(newUser);
   }

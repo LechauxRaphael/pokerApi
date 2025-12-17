@@ -9,6 +9,8 @@ import { User } from './users/user.entity';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard';
 import { JwtModule } from '@nestjs/jwt';
+import { MoneyController } from './money/money.controller';
+import { MoneyService } from './money/money.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -21,6 +23,7 @@ import { JwtModule } from '@nestjs/jwt';
       synchronize: true, // crée automatiquement les tables
       autoLoadEntities: true,
     }),
+    TypeOrmModule.forFeature([User]),
     JwtModule.register({ // ← ajouter ce module pour que JwtService soit injectable
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
@@ -28,12 +31,13 @@ import { JwtModule } from '@nestjs/jwt';
     AuthModule,
     UsersModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, MoneyController],
   providers: [{
     provide: APP_GUARD,
     useClass: AuthGuard,
   },
-    AppService
+    AppService,
+    MoneyService
   ],
 })
 export class AppModule {}

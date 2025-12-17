@@ -21,18 +21,20 @@ export class AuthService {
         }
     // hash du mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
-
+    const argent = 1000;
     // créer l'utilisateur
     const user = await this.usersService.create({
       username,
       password: hashedPassword,
+      money: argent,
     });
 
     const payload = { sub: user.userId, username: user.username };
     return { success: true,
              message: "Utilisateur crée avec succès",
              username: user.username,
-             userId: user.userId
+             userId: user.userId,
+             argent: user.money
             };
   }
 

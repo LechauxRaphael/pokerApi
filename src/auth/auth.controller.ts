@@ -9,7 +9,7 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
-  async register(@Body() body: { username: string; password: string }) {
+  async register(@Body() body: { username: string; password: string}) {
     return this.authService.register(body.username, body.password);
   }
 
