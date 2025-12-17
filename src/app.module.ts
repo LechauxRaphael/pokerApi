@@ -11,6 +11,9 @@ import { AuthGuard } from './auth/auth.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { MoneyController } from './money/money.controller';
 import { MoneyService } from './money/money.service';
+import { TablesController } from './tables/tables.controller';
+import { TablesService} from './tables/tables.service';
+import { DecksService } from './decks/decks.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,13 +34,15 @@ import { MoneyService } from './money/money.service';
     AuthModule,
     UsersModule,
   ],
-  controllers: [AppController, MoneyController],
+  controllers: [AppController, MoneyController, TablesController],
   providers: [{
     provide: APP_GUARD,
     useClass: AuthGuard,
   },
     AppService,
-    MoneyService
+    MoneyService,
+    TablesService, 
+    DecksService
   ],
 })
 export class AppModule {}

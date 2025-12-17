@@ -1,12 +1,12 @@
 import { Controller, Dependencies, Get, Post, Body, UseGuards } from '@nestjs/common';
-import { tablesService } from './tables.service';
+import { TablesService } from './tables.service';
 
 @Controller('tables')
-@Dependencies(tablesService)
+@Dependencies(TablesService)
 export class TablesController {
 
-    tablesService: tablesService;
-    constructor(tablesService: tablesService) {
+    tablesService: TablesService;
+    constructor(tablesService: TablesService) {
         this.tablesService = tablesService;
     }
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DecksService } from 'src/decks/decks.service';
 
 @Injectable()
-export class tablesService {
+export class TablesService {
     tables: string[];
     private deck: any[];
 
