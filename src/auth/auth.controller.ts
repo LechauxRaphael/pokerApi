@@ -19,4 +19,14 @@ export class AuthController {
   async login(@Body() body: { username: string; password: string }) {
     return this.authService.signIn(body.username, body.password);
   }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  logout() {
+    return {
+      success: true,
+      message: 'Deconnecté avec succès',
+    }
+  }
 }

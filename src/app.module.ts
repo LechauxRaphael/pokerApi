@@ -35,10 +35,7 @@ import { DecksService } from './decks/decks.service';
     UsersModule,
   ],
   controllers: [AppController, MoneyController, TablesController],
-  providers: [{
-    provide: APP_GUARD,
-    useClass: AuthGuard,
-  },
+  providers: [
     AppService,
     MoneyService,
     TablesService, 

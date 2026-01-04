@@ -13,29 +13,30 @@
   POST → http://localhost:8800/api/auth/logout {token}
   Permet à un utilisateur de se déconnecter
 
-  GET → http://localhost:8800/api/auth/profil 
-  Profil utilisateur (besoin d'un token)
-
 👥 Joueurs
 
   GET → http://localhost:8800/api/users
   Récupère tous les utilisateurs
   
   GET → http://localhost:8800/api/users/:id
-  Récupère un utilisateur spécifique
+  Récupère un utilisateur spécifique (public)
+
+  GET → http://localhost:8800/api/users/me 
+  Récupère les infos personnelles d'un profil connecté (privé) 
+  Profil utilisateur (l'utilisateur doit être connecté)
 
 🪑 Tables
 
   GET → http://localhost:8800/api/tables
   Permet de voir les tables disponibles
   
-  GET → http://localhost:8800/api/tables/:id/join
-  Permet à un joueur de rejoindre un table
+  POST → http://localhost:8800/api/tables/:tableName/join
+  Permet à un joueur de rejoindre une table (l'utilisateur doit être connecté)
 
-  GET → http://localhost:8800/api/tables/:id/leave
-  Permet à un joueur de quitter un table
-  
-  GET → http://localhost:8800/api/tables/:id
+  DELETE → http://localhost:8800/api/tables/:tableName/leave
+  Permet à un joueur de quitter une table (l'utilisateur doit être connecté)
+
+  GET → http://localhost:8800/api/tables/:tableName
   Permet d'avoir des infos sur une table précise
 
   nom
@@ -72,17 +73,17 @@
 
 🧩 Deck
 
-  GET → http://localhost:8800/api/tables/:id/deck {tableau d'objet de cartes}
+  GET → http://localhost:8800/api/tables/:tableName/deck {tableau d'objet de cartes}
   Récupère le deck complet d'une table
 
 🃏 Cartes
-  POST → http://localhost:8800/api/tables/:id/deck/distribute {tableau d'objet de cartes}
+  POST → http://localhost:8800/api/tables/:tableName/deck/distribute {tableau d'objet de cartes}
   Permet de distribuer des cartes
 
-  POST → http://localhost:8800/api/tables/:id/deck/burn {la carte à "passer"}
+  POST → http://localhost:8800/api/tables/:tableName/deck/burn {la carte à "passer"}
   Brûle une carte
 
-  GET → http://localhost:8800/api/tables/:id/deck/cards/:id 
+  GET → http://localhost:8800/api/tables/:tableName/deck/cards/:id 
   Récupère une carte spécifique
   
  ⚙️ Déroulement : Connexion
