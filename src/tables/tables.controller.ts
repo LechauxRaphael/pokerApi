@@ -37,16 +37,19 @@ export class TablesController {
         return this.tablesService.findDeck();
     }
 
+    @UseGuards(AuthGuard)
     @Get(':tableName/deck')
     getDeckByTable(@Param('tableName') tableName: string) {
         return this.tablesService.getTableDeck(tableName);
     }
 
+
+    @UseGuards(AuthGuard)
     @Get('deckshuffle')
     shuffle() {
         return this.tablesService.shuffle();
     }
-
+    
     @UseGuards(AuthGuard)
     @Post(':tableName/deck/distribute')
     distribute(@Param('tableName') tableName: string) {
@@ -81,6 +84,22 @@ export class TablesController {
 
         return this.tablesService.leaveTable(tableName, user.sub);
     }
+
+    @UseGuards(AuthGuard)
+    @Post(':tableName/deck/burn')
+    burnCard(@Param('tableName') tableName: string) {
+        return this.tablesService.burnCard(tableName);
+    }
+
+    @UseGuards(AuthGuard)
+    @Get(':tableName/deck/cards/:id')
+    getCardById(
+        @Param('tableName') tableName: string,
+        @Param('id') id: string
+    ) {
+        return this.tablesService.getCardById(tableName, Number(id));
+    }
+
 
     // =========================
     // DYNAMIC

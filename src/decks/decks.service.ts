@@ -4,11 +4,6 @@ import { Injectable } from '@nestjs/common';
 export class DecksService {
   private suits = ['♠️ pique', '♥️ coeur', '♦️ carreau', '♣️ trèfle'];
   private values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-  private deck: any[] = []; // <-- deck en mémoire
-
-  constructor() {
-    this.deck = this.createDeck(); // initialise le deck au démarrage
-  }
 
   createDeck() {
     const deck = [];
@@ -28,21 +23,19 @@ export class DecksService {
     return deck;
   }
 
-  private distributeDeck(deck: any[]) {
-    const cards = deck.slice(0, 2); // distribue 2 cartes
-    const remainingDeck = deck.slice(2);
-    return { cards, remainingDeck };
+  // 🔥 burn = retire la première carte
+  burn(deck: any[]) {
+    if (!deck.length) {
+      throw new Error('Le deck est vide');
+    }
+    return deck.shift();
   }
 
-  distribute(deck?: any[]) {
-    const currentDeck = deck && deck.length ? deck : this.deck;
-
-    if (currentDeck.length < 2) {
-      throw new Error('Pas assez de cartes dans le deck pour distribuer.');
+  // 🎯 usage interne
+  getCardById(deck: any[], id: number) {
+    if (id < 0 || id >= deck.length) {
+      throw new Error('Carte inexistante');
     }
-
-    const result = this.distributeDeck(currentDeck);
-    this.deck = result.remainingDeck; // on garde le reste du deck
-    return result;
+    return deck[id];
   }
 }
