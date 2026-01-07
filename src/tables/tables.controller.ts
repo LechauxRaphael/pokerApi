@@ -111,6 +111,17 @@ export class TablesController {
         return this.tablesService.setBlind(tableName, user.sub, type);
     }
 
+    @UseGuards(AuthGuard)
+    @Post(':tableName/games')
+    createGame(@Param('tableName') tableName: string) {
+        return this.tablesService.createGame(tableName);
+    }
+
+    @Get('games')
+    getAllGames() {
+        return this.tablesService.findAllGames();
+    }
+
     // =========================
     // DYNAMIC
     // =========================
@@ -123,4 +134,6 @@ export class TablesController {
         }
         return table;
     }
+
+    
 }
