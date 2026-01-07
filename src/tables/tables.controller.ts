@@ -9,10 +9,12 @@ import {
     Param,
     Req,
     UseGuards,
-    NotFoundException
+    NotFoundException,
+    BadRequestException
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import type { IAuthInfoRequest } from '../auth/auth.guard';
+import type { PokerAction } from './tables.types';
 
 @Controller('tables')
 @Dependencies(TablesService)
@@ -43,7 +45,6 @@ export class TablesController {
         return this.tablesService.getTableDeck(tableName);
     }
 
-
     @UseGuards(AuthGuard)
     @Get('deckshuffle')
     shuffle() {
@@ -54,6 +55,23 @@ export class TablesController {
     @Post(':tableName/deck/distribute')
     distribute(@Param('tableName') tableName: string) {
         return this.tablesService.distributeHands(tableName);
+    }
+
+    @UseGuards(AuthGuard)
+    @Post(':tableName/action')
+    async action(
+        @Req() req: IAuthInfoRequest,
+        @Param('tableName') tableName: string,
+        @Body('type') type: PokerAction,
+    ) {
+        const validActions: PokerAction[] = ['fold', 'check', 'call', 'raise', 'all-in'];
+        if (!validActions.includes(type)) {
+            throw new BadRequestException('Action invalide');
+        }
+
+        const result = await this.tablesService.performAction(req.user.sub, tableName, type);
+
+        return { success: true, result };
     }
 
     // =========================
@@ -135,5 +153,5 @@ export class TablesController {
         return table;
     }
 
-    
+
 }
