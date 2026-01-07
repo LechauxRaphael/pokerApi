@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { DecksService } from 'src/decks/decks.service';
-
+import { PokerAction } from './tables.types';
 @Injectable()
 export class TablesService {
     private tables: {
@@ -10,6 +10,8 @@ export class TablesService {
             username: string;
             hand?: any[];
             blind?: 'big' | 'small' | 'neutre';
+            folded?: boolean;
+            currentBet?: number;
         }[];
         deck: any[];
         games: {
@@ -188,12 +190,46 @@ export class TablesService {
     }
 
     findAllGames() {
-    return this.tables.flatMap(table =>
-        table.games.map(game => ({
-            tableName: table.name,
-            ...game,
-        })),
-    );
-}
+        return this.tables.flatMap(table =>
+            table.games.map(game => ({
+                tableName: table.name,
+                ...game,
+            })),
+        );
+    }
 
+    performAction(
+        userId: number,
+        tableName: string,
+        type: PokerAction,
+    ) {
+        const table = this.findTable(tableName);
+        if (!table) throw new BadRequestException('Table non trouvée');
+
+        const player = table.players.find(p => p.userId === userId);
+        if (!player) throw new BadRequestException('Vous n’êtes pas à cette table');
+
+        player.currentBet ??= 0;
+        player.folded ??= false;
+
+        if (player.folded) {
+            throw new BadRequestException('Vous avez déjà fold');
+        }
+
+        switch (type) {
+            case 'fold':
+                player.folded = true;
+                return { action: 'fold' };
+            case 'check':
+                return { action: 'check' };
+            case 'call':
+                return { action: 'call' };
+            case 'raise':
+                throw new BadRequestException('Raise pas encore implémenté');
+            case 'all-in':
+                throw new BadRequestException('All-in pas encore implémenté');
+            default:
+                throw new BadRequestException('Action inconnue');
+        }
+    }
 }

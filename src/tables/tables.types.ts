@@ -1,0 +1,1 @@
+export type PokerAction = 'fold' | 'check' | 'call' | 'raise' | 'all-in';
