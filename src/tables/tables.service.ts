@@ -12,6 +12,15 @@ export class TablesService {
             blind?: 'big' | 'small' | 'neutre';
         }[];
         deck: any[];
+        games: {
+            id: number;
+            createdAt: Date;
+            status: 'waiting' | 'running' | 'finished';
+            players: {
+                userId: number;
+                username: string;
+            }[];
+        }[];
     }[] = [];
 
     constructor(private readonly decksService: DecksService) {
@@ -20,16 +29,19 @@ export class TablesService {
                 name: 'Table1',
                 players: [],
                 deck: this.decksService.shuffle(this.decksService.createDeck()),
+                games: [],
             },
             {
                 name: 'Table2',
                 players: [],
                 deck: this.decksService.shuffle(this.decksService.createDeck()),
+                games: [],
             },
             {
                 name: 'Table3',
                 players: [],
                 deck: this.decksService.shuffle(this.decksService.createDeck()),
+                games: [],
             },
         ];
     }
@@ -43,11 +55,11 @@ export class TablesService {
     }
 
     shuffle() {
-    this.tables.forEach(table => {
-        table.deck = this.decksService.shuffle(table.deck);
-    });
+        this.tables.forEach(table => {
+            table.deck = this.decksService.shuffle(table.deck);
+        });
 
-    return {
+        return {
             message: 'Tous les decks ont été mélangés',
             tables: this.tables.map(t => ({
                 tableName: t.name,
@@ -127,28 +139,61 @@ export class TablesService {
     }
 
     setBlind(
-    tableName: string,
-    userId: number,
-    type: 'big' | 'small' | 'neutre'
+        tableName: string,
+        userId: number,
+        type: 'big' | 'small' | 'neutre'
     ) {
-    const table = this.findTable(tableName);
-    if (!table) throw new NotFoundException('Table non trouvée');
+        const table = this.findTable(tableName);
+        if (!table) throw new NotFoundException('Table non trouvée');
 
-    const player = table.players.find(p => p.userId === userId);
-    if (!player) throw new NotFoundException('Joueur non trouvé à la table');
+        const player = table.players.find(p => p.userId === userId);
+        if (!player) throw new NotFoundException('Joueur non trouvé à la table');
 
-    if (!['big', 'small', 'neutre'].includes(type)) {
-        throw new BadRequestException('Type de blind invalide');
+        if (!['big', 'small', 'neutre'].includes(type)) {
+            throw new BadRequestException('Type de blind invalide');
+        }
+
+        player.blind = type;
+
+        return {
+            table: table.name,
+            userId: player.userId,
+            username: player.username,
+            blind: player.blind,
+        };
+    }
+    createGame(tableName: string) {
+        const table = this.findTable(tableName);
+        if (!table) {
+            throw new NotFoundException('Table non trouvée');
+        }
+
+        if (table.players.length <= 2) {
+            throw new BadRequestException('Il faut au moins 3 joueurs pour lancer une partie');
+        }
+
+        const game = {
+            id: table.games.length + 1,
+            createdAt: new Date(),
+            status: 'running' as const,
+            players: table.players.map(p => ({
+                userId: p.userId,
+                username: p.username,
+            })),
+        };
+
+        table.games.push(game);
+
+        return game;
     }
 
-    player.blind = type;
-
-    return {
-        table: table.name,
-        userId: player.userId,
-        username: player.username,
-        blind: player.blind,
-    };
+    findAllGames() {
+    return this.tables.flatMap(table =>
+        table.games.map(game => ({
+            tableName: table.name,
+            ...game,
+        })),
+    );
 }
 
 }
