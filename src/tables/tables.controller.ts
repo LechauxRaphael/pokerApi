@@ -176,8 +176,8 @@ export class TablesController {
 
     @UseGuards(AuthGuard)
     @Post(':tableName/games')
-    createGame(@Param('tableName') tableName: string) {
-        return this.tablesService.createGame(tableName);
+    createGame(@Param('tableName') tableName: string, @Req() req: IAuthInfoRequest) {
+        return this.tablesService.createGame(tableName, req.user.sub);
     }
 
     @Get('games')

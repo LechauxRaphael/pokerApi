@@ -14,7 +14,10 @@ export class TablesService {
             userId: number;
             username: string;
             hand?: any[];
-            blind?: 'big' | 'small' | 'neutre';
+            blind: {
+                types: string;
+                amount: number;
+            };
             folded?: boolean;
             allIn?: boolean;
             check?: boolean;
@@ -103,7 +106,7 @@ export class TablesService {
         if (!table) throw new NotFoundException('Table non trouvée');
 
         if (!table.players.find(p => p.userId === user.userId)) {
-            table.players.push({ ...user, hand: [], currentBet: 0, miseTotaleTable: 0 });
+            table.players.push({ ...user, hand: [], blind: { types: 'neutre', amount: 0 }, currentBet: 0, miseTotaleTable: 0 });
         }
         return table;
     }
@@ -156,7 +159,7 @@ export class TablesService {
     //         blind: player.blind,
     //     };
     // }
-    createGame(tableName: string, userId: number, type: 'big' | 'small' | 'neutre') {
+    async createGame(tableName: string, userId: number) {
         const table = this.findTable(tableName);
         if (!table) {
             throw new NotFoundException('Table non trouvée');
@@ -169,12 +172,11 @@ export class TablesService {
         const player = table.players.find(p => p.userId === userId);
         if (!player) throw new NotFoundException('Joueur non trouvé à la table');
 
-        if (!['big', 'small', 'neutre'].includes(type)) {
-            throw new BadRequestException('Type de blind invalide');
-        }
+        const user = await this.usersService.findOnePlayer(userId);
+        if (!user) throw new NotFoundException('Utilisateur non trouvé');
+   
 
-        player.blind = type;
-
+        // Distribuer les cartes aux joueurs
         table.players.forEach(player => {
             player.hand = [
                 table.deck.shift(),
@@ -182,19 +184,40 @@ export class TablesService {
             ];
         });
 
+        const blinds = [{types: 'small', amount: 2}, {types: 'big', amount: 5}];
+
+
+        table.players.forEach((player, index) => {
+            player.blind = blinds[index] ?? {types: 'neutre', amount: 0};
+        });
+
+
+        for (const player of table.players) {
+            if (player.blind.types !== 'neutre') {
+                const userToUpdate = await this.usersService.findOnePlayer(player.userId);
+                if (!userToUpdate) continue;
+
+                userToUpdate.money -= player.blind.amount;
+                await this.usersRepository.save(userToUpdate);
+            }
+        }
+
+        player.currentBet = 5; // Le big blind commence à 5
+
         const game = {
             id: table.games.length + 1,
             createdAt: new Date(),
             status: 'running' as const,
+            miseActuelle: player.currentBet,
             players: table.players.map(p => ({
                 userId: p.userId,
                 username: p.username,
-                hand: p.hand,
                 blind: p.blind,
+                hand: p.hand,
             })),
 
         };
-
+        await this.usersRepository.save(user);
         table.games.push(game);
         return game;
     }
