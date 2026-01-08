@@ -2,7 +2,6 @@ import { Injectable, BadRequestException, NotFoundException, NotImplementedExcep
 import { DecksService } from 'src/decks/decks.service';
 import { PokerAction } from './tables.types';
 import { UsersService } from 'src/users/users.service';
-import { IntegerType } from 'typeorm';
 import { User } from 'src/users/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,7 +18,10 @@ export class TablesService {
             folded?: boolean;
             allIn?: boolean;
             check?: boolean;
+            call?: boolean;
+            raise?: boolean;
             currentBet?: number;
+            miseTotaleTable?: number;
         }[];
         deck: any[];
         games: {
@@ -34,9 +36,9 @@ export class TablesService {
     }[] = [];
 
     constructor(private readonly decksService: DecksService
-        , private readonly usersService: UsersService,   
-         @InjectRepository(User)
-    private usersRepository: Repository<User>,
+        , private readonly usersService: UsersService,
+        @InjectRepository(User)
+        private usersRepository: Repository<User>,
     ) {
         this.tables = [
             {
@@ -101,7 +103,7 @@ export class TablesService {
         if (!table) throw new NotFoundException('Table non trouvée');
 
         if (!table.players.find(p => p.userId === user.userId)) {
-            table.players.push({ ...user, hand: [] });
+            table.players.push({ ...user, hand: [], currentBet: 0, miseTotaleTable: 0 });
         }
         return table;
     }
@@ -112,28 +114,6 @@ export class TablesService {
 
         table.players = table.players.filter(p => p.userId !== userId);
         return table;
-    }
-
-    distributeHands(tableName: string) {
-        const table = this.findTable(tableName);
-        if (!table) throw new BadRequestException('Table non trouvée');
-
-        if (table.players.length < 2) {
-            throw new BadRequestException('Pas assez de joueurs');
-        }
-
-        table.players.forEach(player => {
-            player.hand = [
-                table.deck.shift(),
-                table.deck.shift(),
-            ];
-        });
-
-        return table.players.map(p => ({
-            userId: p.userId,
-            username: p.username,
-            hand: p.hand,
-        }));
     }
 
     // 🔥 BURN
@@ -186,6 +166,13 @@ export class TablesService {
             throw new BadRequestException('Il faut au moins 3 joueurs pour lancer une partie');
         }
 
+        table.players.forEach(player => {
+            player.hand = [
+                table.deck.shift(),
+                table.deck.shift(),
+            ];
+        });
+
         const game = {
             id: table.games.length + 1,
             createdAt: new Date(),
@@ -193,11 +180,12 @@ export class TablesService {
             players: table.players.map(p => ({
                 userId: p.userId,
                 username: p.username,
+                hand: p.hand,
             })),
+            
         };
 
         table.games.push(game);
-
         return game;
     }
 
@@ -210,17 +198,73 @@ export class TablesService {
         );
     }
 
-    async allIn(userId: number){
+    async allIn(userId: number, tableName: string) {
+        const table = this.findTable(tableName);
+        if (!table) throw new BadRequestException('Table non trouvée');
+
+        const player = table.players.find(p => p.userId === userId);
+        if (!player) throw new BadRequestException('Vous n’êtes pas à cette table');
+
         const user = await this.usersService.findOnePlayer(userId);
         if (!user) throw new NotFoundException('Utilisateur non trouvé');
         const allIn = user?.money;
         user.money = 0;
         await this.usersRepository.save(user);
-        return allIn;
-    }   
+        return { username: user.username, action: PokerAction.ALL_IN, sommeAllIn: allIn };
+    }
 
+    async fold(userId: number, tableName: string) {
+        const table = this.findTable(tableName);
+        if (!table) throw new BadRequestException('Table non trouvée');
 
-    async raise(userId: number, tableName: string, somme: number){
+        const player = table.players.find(p => p.userId === userId);
+        if (!player) throw new BadRequestException('Vous n’êtes pas à cette table');
+
+        const user = await this.usersService.findOnePlayer(userId);
+        if (!user) throw new NotFoundException('Utilisateur non trouvé');
+        player.folded = true;
+        return { username: user.username, action: PokerAction.FOLD };
+    }
+
+    async check(userId: number, tableName: string) {
+        const table = this.findTable(tableName);
+        if (!table) throw new BadRequestException('Table non trouvée');
+
+        const player = table.players.find(p => p.userId === userId);
+        if (!player) throw new BadRequestException('Vous n’êtes pas à cette table');
+
+        const user = await this.usersService.findOnePlayer(userId);
+        if (!user) throw new NotFoundException('Utilisateur non trouvé');
+        player.check = true;
+        return { username: user.username, action: PokerAction.CHECK };
+    }
+
+    async call(userId: number, tableName: string) {
+        const table = this.findTable(tableName);
+        if (!table) throw new BadRequestException('Table non trouvée');
+
+        const player = table.players.find(p => p.userId === userId);
+        if (!player) throw new BadRequestException('Vous n’êtes pas à cette table');
+
+        const user = await this.usersService.findOnePlayer(userId);
+        if (!user) throw new NotFoundException('Utilisateur non trouvé');
+
+        const moneyUser = user?.money; // Argent actuel de l'utilisateur
+        const sommeACall = player.currentBet ?? 0; // Somme que l'utilisateur veut miser
+
+        if (moneyUser < sommeACall) {
+            throw new BadRequestException('Fonds insuffisants pour cette mise');
+        }
+        const montant = sommeACall;
+        user.money = moneyUser - sommeACall; // Déduire la somme du solde de l'utilisateur
+        player.miseTotaleTable = (player.miseTotaleTable ?? 0) + montant; // Mettre à jour la mise totale du joueur
+        player.call = true;
+        await this.usersRepository.save(user);
+
+        return { username: user.username, action: PokerAction.CALL, sommeMisé: player.currentBet, argentRestant: user.money, miseTotaleTable: player.miseTotaleTable };
+    }
+
+    async raise(userId: number, tableName: string, somme: number) {
 
         const table = this.findTable(tableName);
         if (!table) throw new BadRequestException('Table non trouvée');
@@ -232,15 +276,19 @@ export class TablesService {
         if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
         const moneyUser = user?.money; // Argent actuel de l'utilisateur
-        const sommeARaiser = somme; // Somme que l'utilisateur veut miser
+        const sommeARaiser = Number(somme); // Somme que l'utilisateur veut miser
 
-        if(moneyUser < sommeARaiser){
+        if (moneyUser < sommeARaiser) {
             throw new BadRequestException('Fonds insuffisants pour cette mise');
         }
-
+        const montant = sommeARaiser;
         user.money = moneyUser - sommeARaiser; // Déduire la somme du solde de l'utilisateur
+        player.miseTotaleTable = (player.miseTotaleTable ?? 0) + montant; // Mettre à jour la mise totale du joueur
+        player.currentBet = montant;
+        player.raise = true;
         await this.usersRepository.save(user);
-        return {username: user.username, sommeMisé : sommeARaiser, argentRestant: user.money};
+
+        return { username: user.username, action: PokerAction.RAISE, sommeMisé: player.currentBet, argentRestant: user.money, miseTotaleTable: player.miseTotaleTable };
     }
 
     performAction(
@@ -262,19 +310,22 @@ export class TablesService {
         }
 
         switch (type) {
-            case 'fold':
+            case PokerAction.FOLD:
                 player.folded = true;
-                return { action: 'fold' };
-            case 'check':
-                player.check = true
-                return { action: 'check' };
-            case 'call':
-                // TODO: gérer les mises
-                return { action: 'call' };
-            case 'raise':
-            case 'all-in':     
+                return { action: PokerAction.FOLD };
+
+            case PokerAction.CHECK:
+                player.check = true;
+                return { action: PokerAction.CHECK };
+
+            case PokerAction.CALL:
+                return { action: PokerAction.CALL };
+
+            case PokerAction.RAISE:
+                return this.raise;
+            case PokerAction.ALL_IN:
                 player.allIn = true;
-                return this.allIn(userId);       
+                return this.allIn(userId, tableName);
             default:
                 throw new NotImplementedException('Action inconnue');
         }

@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import type { IAuthInfoRequest } from '../auth/auth.guard';
-import type { PokerAction } from './tables.types';
+import { PokerAction } from './tables.types';
 
 @Controller('tables')
 @Dependencies(TablesService)
@@ -52,24 +52,22 @@ export class TablesController {
     }
 
     @UseGuards(AuthGuard)
-    @Post(':tableName/deck/distribute')
-    distribute(@Param('tableName') tableName: string) {
-        return this.tablesService.distributeHands(tableName);
-    }
-
-    @UseGuards(AuthGuard)
     @Post(':tableName/action')
     async action(
         @Req() req: IAuthInfoRequest,
         @Param('tableName') tableName: string,
         @Body('type') type: PokerAction,
     ) {
-        const validActions: PokerAction[] = ['fold', 'check', 'call', 'raise', 'all-in'];
-        if (!validActions.includes(type)) {
+
+        if (!Object.values(PokerAction).includes(type)) {
             throw new BadRequestException('Action invalide');
         }
 
-        const result = await this.tablesService.performAction(req.user.sub, tableName, type);
+        const result = await this.tablesService.performAction(
+            req.user.sub,
+            tableName,
+            type,
+        );
 
         return { success: true, username: req.user.username, result };
     }
@@ -80,9 +78,45 @@ export class TablesController {
         @Req() req: IAuthInfoRequest,
         @Param('tableName') tableName: string,
         @Body('somme') somme: number,
-    ){
+    ) {
         const user = req.user;
         return this.tablesService.raise(req.user.sub, tableName, somme);
+    }
+
+    @UseGuards(AuthGuard)
+    @Post(':tableName/action/fold')
+    async fold(
+        @Req() req: IAuthInfoRequest,
+        @Param('tableName') tableName: string,
+    ) {
+        return this.tablesService.fold(req.user.sub, tableName);
+    }
+
+    @UseGuards(AuthGuard)
+    @Post(':tableName/action/check')
+    async check(
+        @Req() req: IAuthInfoRequest,
+        @Param('tableName') tableName: string,
+    ) {
+        return this.tablesService.check(req.user.sub, tableName);
+    }
+
+    @UseGuards(AuthGuard)
+    @Post(':tableName/action/allIn')
+    async allIn(
+        @Req() req: IAuthInfoRequest,
+        @Param('tableName') tableName: string,
+    ) {
+        return this.tablesService.allIn(req.user.sub, tableName);
+    }
+
+    @UseGuards(AuthGuard)
+    @Post(':tableName/action/call')
+    async call(
+        @Req() req: IAuthInfoRequest,
+        @Param('tableName') tableName: string,
+    ) {
+        return this.tablesService.call(req.user.sub, tableName);
     }
 
     // =========================
